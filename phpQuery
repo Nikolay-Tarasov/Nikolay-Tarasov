@@ -1,0 +1,158 @@
+<?
+header('Content-type: text/html; charset=windows-1251');
+
+if(isset($_POST['pr']) and isset($_POST['bt']) and $_POST['pr'] == '123')
+{
+	echo "<a href='http://localhost:83/prod.php'>to prod.php</a>"."<br><hr>";
+
+	include ('phpQuery-onefile.php');
+	 
+	$link =  mysql_connect('localhost', 'root','');
+	mysql_select_db('open');
+	mysql_query("SET CHARACTER SET 'cp1251'");
+
+	$num_top_cat = 300;  // иденфикатор категории 
+
+	$url = 'http://www.site.com/';
+
+	function print_arr($arr)
+	{
+		echo "<pre>" . print_r($arr, true) . "</pre>";
+	}
+
+	$file = file_get_contents($url);
+
+	$doc = phpQuery::newDocument($file);
+
+	foreach ($doc->find('.selection-placeholder .body-col2-itemsline-item') as $article)
+	{
+		$article = pq($article);
+
+		$article->find('.body-col2-itemsline-itemname u')->append(';;;');
+
+		$article->find('.body-col2-itemsline-firm .firm')->append(';;;');
+
+		$article->find('.body-col2-itemsline-itemprice')->append(';;;');
+
+		$article->find('.body-col2-itemsline-itemdescr')->append(';;;');
+
+		$article->find('.unit')->remove();
+
+		$article->find('.nbsp')->remove();
+
+		$article->find('i')->remove();
+
+		// title
+		$title = $article->find('.body-col2-itemsline-itemname u')->html();
+
+		$title_arr = explode(";;;", $title);
+
+		//print_r($title_arr);
+
+		//img
+		$img = $article->find('.body-col2-itemsline-itemimage img')->attr('src');
+
+		$img_url_1 = array("//");
+		$img_url_2 = array(" ");
+		$img_url_result = str_replace($img_url_1, $img_url_2, $img);
+		//echo $img_url_result."<br>";
+
+		$img1 = array("//www.kuvalda.ru/_terminal/catalogue");
+		$img2  = array("catalog");
+		$img_result = str_replace($img1, $img2, $img);
+
+		$img_wg = explode(" ", $img_result);
+
+
+		//echo $img_wg[0];
+
+		exec("C:\OpenServer\modules\wget\bin\wget.exe -nd -r -l 1 -A jpg,png -e robots=off -H -P ./catalog/main $img_url_result");
+
+		// производитель
+		$firm = $article->find('.body-col2-itemsline-firm .firm')->html();
+		
+		$firm = mb_strtolower(iconv("windows-1251", "utf-8", $firm));
+
+		$firm_arr = explode(";;;", $firm);
+
+		$healthy = array(
+		"888","abac","ada","ae&t","ballu","bessey","billy goat","binzel","blue weld","bosch professional","brima","cst/berger","cub cadet","d.bor","dewalt","di-star","diam","dremel","dronco","elitech","energo","esab","ewm","fiac","fiskars","fluke","freud","fubag","gardena","gav","geko","geo-fennel","groz","grundfos","hitachi","honda","husqvarna","huter","imer","instrumax","jet","kapro","karcher","king tony","kipor","knipex","kobelco","kraftmann","krass","krause","kubota","laski","leica","liqui-moly","makita","marina","master","mcculloch","metabo","mitsubishi electrik","mp.s","mtd","n-power","oregon","ortea","partner","patriot","piusi","portotecnica","rapid","remeza","rubi","sdmo","skil","stabila","stanley","steinel","stihl","subaru","sumake","tapco","tayg","testo","texaco","truper","ush","wacker neuson","wagner","wera","wilton","x-line","zitrek","алюмет","арсенал","атака","вихрь","джилекс","интерскол","канат","квазар","красный маяк","кристалл","кувалда.ру","луга","мастак","мисом","нева","ока","практика","ресанта","сварог","сорокин","специалист","сплитстоун","стелла","угра","форсаж","центроинструмент","штиль","эван"
+		);
+		$yummy   = array(
+		12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131
+		);
+
+		$newphrase = str_replace($healthy, $yummy, $firm);
+
+		$firm_arr = explode(";;;", $newphrase);
+
+		//print_r($firm_arr);
+
+		// цена
+		$price = $article->find('.body-col2-itemsline-itemprice')->html();
+
+		$price_arr = explode(";;;", $price);
+
+		//print_r($price_arr);
+
+		// описание
+		$ds = $article->find('.body-col2-itemsline-itemdescr')->html();
+
+		$ds_arr = explode(";;;", $ds);
+
+		//print_r($ds_arr);
+
+		// Дата
+
+		//$date = date('Y-m-d H:i:s');
+
+		$date = time();
+		$title_arr[0] = mysql_real_escape_string(strip_tags($title_arr[0]));
+		$ds_arr[0] = mysql_real_escape_string(strip_tags($ds_arr[0]));
+
+
+		mysql_query("INSERT INTO `oc_product` (`model`,`image`,`price`,`manufacturer_id`, `status`,`date_added`,`date_modified`) 
+	 				VALUES ('$title_arr[0]','$img_wg[0]','$price_arr[0]','$firm_arr[0]', '1',now(), now())");
+
+		
+	 	$new_task_id = mysql_insert_id();
+
+	 	mysql_query("INSERT INTO 
+	 		`oc_product_description` (`product_id`,`name`,`description`,`language_id`,`tag`,`meta_title`, `meta_description`, `meta_keyword`) 
+	 				VALUES ('$new_task_id', '$title_arr[0]', '$ds_arr[0]', '1', '$title_arr[0]', '$title_arr[0]', '$ds_arr[0]', '$title_arr[0]')");
+
+	 	mysql_query("INSERT INTO 
+	 		`oc_product_to_store` (`product_id`,`store_id`) 
+	 				VALUES ('$new_task_id', '0')");
+
+	    mysql_query("INSERT INTO 
+	 		`oc_product_to_category` (`product_id`,`category_id`) 
+	 				VALUES ('$new_task_id', '$num_top_cat')");
+
+	 	$query = mysql_query("INSERT INTO 
+	 		`oc_product_to_layout` (`product_id`,`store_id`,`layout_id`) 
+	 				VALUES ('$new_task_id', '0', '0')");
+
+
+		if($query)
+		{
+			//echo "add to db: : ".$title_arr[0]."<br>".$img_url_result[0]."<hr>";
+		}
+		else
+		{
+			echo mysql_error($link);
+		}
+		
+	 			
+	 
+	 			
+	}
+}
+else echo '	
+
+<form action="" method="post">
+	
+	<input type="text" name="pr">
+	<input type="submit" name="bt" value="add">
+
+</form>';
